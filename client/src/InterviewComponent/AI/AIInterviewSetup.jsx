@@ -1,7 +1,10 @@
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../utils/axios";
 
 const AIInterviewSetup = () => {
   const fileRef = useRef(null);
+  const navigate = useNavigate();
 
   const [file, setFile] = useState(null);
   const [role, setRole] = useState("");
@@ -13,7 +16,10 @@ const AIInterviewSetup = () => {
   };
 
   const handleSubmit = async () => {
-    if (!file || !role) return;
+    if (!file || !role) {
+      alert("Please upload a resume and select a role.");
+      return;
+    }
 
     setLoading(true);
 
@@ -22,15 +28,19 @@ const AIInterviewSetup = () => {
     formData.append("role", role);
 
     try {
-      await fetch("/api/interview/setup", {
-        method: "POST",
-        body: formData,
+      const res = await api.post("/ai-interview/upload", formData);
+
+      const resumeData = res.data;
+      navigate("/ai-interview/session", {
+        state: {
+          resumeText: resumeData.text,
+          role: resumeData.role || role,
+        },
       });
 
-      alert("Resume analyzed! You can start the interview now.");
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
+      alert(err?.response?.data?.message || "Resume Analysis Failed");
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/authRoutes.js";
 import interviewRoutes from "./routes/interviewRoutes.js";
+import aiInterviewRoutes from "./routes/aiInterviewRoutes.js";
 import http from "http";
 import { Server } from "socket.io";
 const app = express();
@@ -16,10 +17,19 @@ const io = new Server(server, {
     credentials: true,
   },
   transports: ["websocket", "polling"],
+  maxHttpBufferSize: 1e6, // 1MB limit per message
+  perMessageDeflate: {
+    threshold: 1024, // Compress messages > 1KB
+  },
 });
+
+io.setMaxListeners(10);
+server.setMaxListeners(10);
 
 const roomCodeState = new Map();
 const codeChangeThrottle = new Map();
+const THROTTLE_CLEANUP_INTERVAL = 30000; // Cleanup every 30s
+const MAX_THROTTLE_ENTRIES = 1000; // Max entries before cleanup
 
 const shouldThrottleCodeChange = (socketId, minWaitMs = 200) => {
   const lastTime = codeChangeThrottle.get(socketId) || 0;
@@ -30,6 +40,21 @@ const shouldThrottleCodeChange = (socketId, minWaitMs = 200) => {
   }
   return true;
 };
+
+// Cleanup old throttle entries periodically to prevent memory leak
+setInterval(() => {
+  if (codeChangeThrottle.size > MAX_THROTTLE_ENTRIES) {
+    const now = Date.now();
+    let removed = 0;
+    for (const [socketId, timestamp] of codeChangeThrottle.entries()) {
+      if (now - timestamp > 60000) { // Remove entries older than 1 minute
+        codeChangeThrottle.delete(socketId);
+        removed++;
+      }
+    }
+    if (removed > 0) console.log(`🧹 Cleaned up ${removed} throttle entries`);
+  }
+}, THROTTLE_CLEANUP_INTERVAL);
 
 io.on("connection", (socket) => {
   console.log("🔌 Connected:", socket.id);
@@ -84,12 +109,17 @@ io.on("connection", (socket) => {
   });
 
   socket.on("host-end-room", (roomId) => {
-    io.to(`${roomId}-video`).emit("meeting-ended");
-    io.to(`${roomId}-chat`).emit("meeting-ended");
+    const videoRoom = `${roomId}-video`;
+    const chatRoom = `${roomId}-chat`;
+    const codeRoom = `${roomId}-code`;
 
-    io.socketsLeave(`${roomId}-video`);
-    io.socketsLeave(`${roomId}-chat`);
-    io.socketsLeave(`${roomId}-code`);
+    io.to(videoRoom).emit("meeting-ended");
+    io.to(chatRoom).emit("meeting-ended");
+
+    io.socketsLeave(videoRoom);
+    io.socketsLeave(chatRoom);
+    io.socketsLeave(codeRoom);
+    
     roomCodeState.delete(roomId);
 
     console.log("🚫 Meeting ended by host:", roomId);
@@ -119,15 +149,22 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const { roomId, role } = socket.data;
 
+    // Immediate cleanup of throttle entry
     codeChangeThrottle.delete(socket.id);
 
     if (role === "host" && roomId) {
-      io.to(`${roomId}-video`).emit("meeting-ended");
-      io.to(`${roomId}-chat`).emit("meeting-ended");
+      const videoRoom = `${roomId}-video`;
+      const chatRoom = `${roomId}-chat`;
+      const codeRoom = `${roomId}-code`;
 
-      io.socketsLeave(`${roomId}-video`);
-      io.socketsLeave(`${roomId}-chat`);
-      io.socketsLeave(`${roomId}-code`);
+      io.to(videoRoom).emit("meeting-ended");
+      io.to(chatRoom).emit("meeting-ended");
+
+      io.socketsLeave(videoRoom);
+      io.socketsLeave(chatRoom);
+      io.socketsLeave(codeRoom);
+      
+      roomCodeState.delete(roomId);
 
       console.log("🚫 Host disconnected, meeting ended:", roomId);
     }
@@ -151,6 +188,7 @@ app.use(
 
 app.use("/api/auth", authRouter);
 app.use("/api/interview", interviewRoutes);
+app.use("/api/ai-interview", aiInterviewRoutes);
 
 server.listen(port, () =>
   console.log(`Server + Socket running on port : ${port}`)

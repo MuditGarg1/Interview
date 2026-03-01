@@ -129,7 +129,7 @@ export default function CodeEditor({ socket, roomId, role }) {
   };
 
   return (
-    <div className="h-full w-full rounded-2xl overflow-hidden border border-indigo-500/20 bg-gradient-to-br from-slate-900/50 to-black/60 shadow-2xl flex flex-col">
+    <div className="h-full w-full rounded-2xl overflow-hidden border border-indigo-500/20 bg-linear-to-br from-slate-900/50 to-black/60 shadow-2xl flex flex-col">
       {/* Header */}
       <div className="px-4 py-3 border-b border-indigo-500/20 bg-gradient-to-r from-slate-900/80 to-black/50">
         <div className="flex items-center justify-between">

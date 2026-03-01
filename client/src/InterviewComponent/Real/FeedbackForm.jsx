@@ -63,7 +63,7 @@ export default function FeedbackForm({ roomId, intervieweeEmail, onClose, onSubm
   const overallScore = ((formData.technicalScore + formData.communicationScore + formData.confidenceScore) / 3).toFixed(1);
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-start justify-center pt-24 z-[99999] p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 flex items-start justify-center pt-24 z-99999 p-4 overflow-y-auto">
       <div className="bg-white rounded-xl w-full max-w-2xl my-8 shadow-2xl">
         
         {/* Header */}
@@ -85,7 +85,7 @@ export default function FeedbackForm({ roomId, intervieweeEmail, onClose, onSubm
         <form onSubmit={handleSubmit} className="p-8 space-y-8">
           
           {/* Overall Score Display */}
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
+          <div className="bg-linear-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-700 text-sm font-semibold mb-2">Overall Score</p>

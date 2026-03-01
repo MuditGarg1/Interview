@@ -17,6 +17,8 @@ import InterviewEntry from "./InterviewComponent/Real/InterviewEntry";
 import Host from "./InterviewComponent/Real/Host";
 import Client from "./InterviewComponent/Real/Client";
 import AIInterviewSetup from "./InterviewComponent/AI/AIInterviewSetup";
+import AIInterviewPage from "./InterviewComponent/AI/AIInterviewPage";
+// import UploadResume from "./pages/UploadResume";
 
 function App() {
   const { isLoggedin, loading } = useContext(AuthContext);
@@ -52,7 +54,7 @@ function App() {
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/interview-entry" element={<InterviewEntry />} />
           <Route path="/ai-interview" element={<AIInterviewSetup />} />
-          
+          <Route path="/ai-interview/session" element={<AIInterviewPage />} />
 
         </Routes>
       </main>
